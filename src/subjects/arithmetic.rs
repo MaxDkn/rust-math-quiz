@@ -1,9 +1,9 @@
-use std::array::from_fn;
 use rand::{Rng};
-use rand::seq::SliceRandom;
+use std::ops::Div;
+use std::array::from_fn;
 use rand::prelude::IndexedRandom;
-use crate::tools::function::{format_answers, fill_unique_random};
 use crate::models::{ Quiz, Answer };
+use crate::tools::function::{format_answers, fill_unique_random, gcd};
 
 fn q_is_square() -> Quiz {
     const MIN: usize = 9; const MAX: usize = 169; // numbers here has to be a perfect square!
@@ -90,8 +90,8 @@ fn q_div_rem() -> Quiz {
 
     // Génération des réponses
     let mut values = vec![answer];
-    fill_unique_random(&mut values, 4, || { rng.random_range(0..divisor )});
-    values.shuffle(&mut rng);
+    fill_unique_random(&mut values, 4,  &mut rng,
+                       0..divisor);
 
     let answers: [String; 4] = format_answers(&values, |v| format!("${v}$"));
 
@@ -110,15 +110,82 @@ fn q_div_rem() -> Quiz {
     }
 }
 
-fn q_gcd() {
-    const MIN: usize = 20; const MAX: usize = 40;
-    const MIN_SOLUTION: usize = 2; const MAX_SOLUTION: usize = 6;
+fn q_is_divisible() -> Quiz {
+    const MIN: usize = 100; const MAX: usize = 10_000;
+    const DIVISORS: [usize; 7] = [3, 5, 6, 7, 9, 10, 15];
     const SENTENCES: [&str; 3] = [
-        "Trouve le {gcd_or_lcm} entre {l}{n1}{l} et {l}{n2}{l}.",
-        "",
-        ""
+        "Le nombre ${k}$ divise-t-il ${num}$ ?",
+        "Le reste de la division euclidienne de ${num}$ par ${k}$ est-il nul ?",
+        "${num}$ est-il divisible par ${k}$ ?"
+    ];
+    const ANSWERS: [bool; 2] = [true, false];
+
+    let mut rng = rand::rng();
+    let index_answer: usize = rng.random_range(0..=1);
+    let divisor = DIVISORS[rng.random_range(0..7)];
+
+    let mut value;
+
+    if ANSWERS[index_answer] {
+        value = rng.random_range(MIN.div(divisor)..=MAX.div(divisor)) * divisor;
+    } else {
+        loop {
+            value = rng.random_range(MIN..=MAX);
+            if value % divisor != 0 {
+                break;
+            }
+        }
+    }
+
+    let text = SENTENCES
+        .choose(&mut rng)
+        .unwrap()
+        .replace("{num}", &value.to_string())
+        .replace("{k}", &divisor.to_string());
+
+    Quiz { text, suggested_answer: Answer::Close(ANSWERS), index_answer }
+}
+
+pub fn q_gcd() -> Quiz {
+    const MIN: usize = 20; const MAX: usize = 60;
+    const MIN_SOLUTION: usize = 1; const MAX_SOLUTION: usize = 6;
+    const SENTENCES: [&str; 3] = [
+        "Trouve le plus grand diviseur commun de ${a}$ et ${b}$.",
+        "Quel est le PGCD de ${a}$ et ${b}$ ?",
+        "Combien vaut $\\mathrm{pgcd}({a}, {b})$ ?"
     ];
 
+    let mut rng = rand::rng();
+
+    let k = rng.random_range(MIN_SOLUTION..=MAX_SOLUTION);
+
+    let min_xy = (MIN + k - 1) / k;
+    let max_xy = MAX / k;
+
+    let x = rng.random_range(min_xy..=max_xy);
+    let co_primes: Vec<usize> = (min_xy..=max_xy)
+        .filter(|&y| gcd(x, y) == 1)
+        .collect();
+
+    let y = *co_primes.choose(&mut rng).unwrap();
+
+    let (a, b) = (x*k, y*k);
+
+    let mut answers = vec![k];
+    fill_unique_random(&mut answers, 4,
+                       &mut rng,
+                       MIN_SOLUTION..=MAX_SOLUTION);
+
+    let index_answer = answers.iter().position(|&v| { v==k}).unwrap();
+
+    let text = SENTENCES
+        .choose(&mut rng)
+        .unwrap()
+        .replace("{a}", &a.to_string())
+        .replace("{b}", &b.to_string());
+    let answers: [String; 4] = format_answers(&answers, |v| format!("${v}$"));
+
+    Quiz { text, suggested_answer: Answer::Open(answers), index_answer}
 }
 
 fn q_conv_dec() -> Quiz {
@@ -133,8 +200,8 @@ fn q_conv_dec() -> Quiz {
 
     let value = rng.random_range(MIN..=MAX);
     let mut values = vec![value];
-    fill_unique_random(&mut values, 4, || rng.random_range(MIN..=MAX));
-    values.shuffle(&mut rng);
+
+    fill_unique_random(&mut values, 4, &mut rng, MIN..=MAX);
 
     let answers: [String; 4] = format_answers(&values, |v| format!("${:05b}_2$", v));
 
@@ -161,9 +228,7 @@ fn q_conv_bin() -> Quiz {
     let value = rng.random_range(MIN..=MAX);
     let mut values = vec![value];
 
-    fill_unique_random(&mut values, 4, || rng.random_range(MIN..=MAX));
-
-    values.shuffle(&mut rng);
+    fill_unique_random(&mut values, 4, &mut rng, MIN..=MAX);
 
     let answers: [String; 4] = format_answers(&values, |v| format!("${v}$"));
 
@@ -181,10 +246,12 @@ pub fn generate() -> Quiz {
     let mut rng = rand::rng();
     let x: bool = rng.random();
 
-    match rng.random_range(0..4) {
+    match rng.random_range(0..6) {
         0 => q_is_square(),
         1 => q_is_prime(),
         2 => q_div_rem(),
+        3 => q_is_divisible(),
+        4 => q_gcd(),
         _ => if x { q_conv_dec() } else { q_conv_bin() }
     }
 }

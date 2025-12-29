@@ -1,5 +1,7 @@
 pub mod function {
     use num_traits::PrimInt;
+    use rand::seq::SliceRandom;
+    use rand::distr::uniform::SampleRange;
 
     pub fn format_answers<T, F>(values: &[T], fmt: F) -> [String; 4]
     where
@@ -15,32 +17,33 @@ pub mod function {
             .unwrap()
     }
 
-    pub fn fill_unique_random<T, F>(
-        values: &mut Vec<T>,
+    pub fn fill_unique_random<R>(
+        values: &mut Vec<usize>,
         target_len: usize,
-        mut generator: F,
-    ) where
-        T: PartialEq,
-        F: FnMut() -> T,
+        rng: &mut impl rand::Rng,
+        range: R,
+    ) where R: SampleRange<usize> + Clone,
     {
         while values.len() < target_len {
-            let v = generator();
+            let v = rng.random_range(range.clone());
             if !values.contains(&v) {
                 values.push(v);
             }
         }
+        values.shuffle(rng);
     }
 
-    pub fn gcd<T>(mut a: T, mut b: T) -> T where T: PrimInt {
+    pub fn gcd<T>(
+        mut a: T,
+        mut b: T
+    ) -> T where
+        T: PrimInt
+    {
         while b != T::zero() {
             let r = a % b;
             a = b;
             b = r;
         }
         a
-    }
-
-    pub fn lcm<T>(a: T, b: T) -> T where T: PrimInt {
-        (a * b) / gcd(a, b)
     }
 }
