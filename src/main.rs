@@ -45,5 +45,8 @@ fn main() {
     let question = subjects::generate(Some(Subject::Arithmetic));
     println!("{}\n{}", question.text, question.suggested_answer);
     println!("Answer: {}", ['A', 'B', 'C', 'D'][question.index_answer]);
-
+    println!();
+    let question = subjects::generate(None);
+    println!("{}\n{}", question.text, question.suggested_answer);
+    println!("Answer: {}", ['A', 'B', 'C', 'D'][question.index_answer]);
 }
