@@ -146,7 +146,7 @@ fn q_is_divisible() -> Quiz {
     Quiz { text, suggested_answer: Answer::Close(ANSWERS), index_answer }
 }
 
-pub fn q_gcd() -> Quiz {
+fn q_gcd() -> Quiz {
     const MIN: usize = 20; const MAX: usize = 60;
     const MIN_SOLUTION: usize = 1; const MAX_SOLUTION: usize = 6;
     const SENTENCES: [&str; 3] = [

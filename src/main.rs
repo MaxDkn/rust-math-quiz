@@ -1,6 +1,4 @@
-mod tools;
-mod models;
-mod subjects;
+mod tools; mod models; mod subjects;
 
 use subjects::Subject;
 use models::Answer;
